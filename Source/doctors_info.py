@@ -1,12 +1,17 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from Source.database import cluster
-
-db = cluster["MediSched"]
+from Source.database import cluster, db
 
 
-async  def doctors_info_do_insert():
-    result = await db.doctors.insert_many([
+async def doctors_info_do_insert():
+    """
+    Inserts a list of doctor information into the 'doctors' collection in the database.
+
+    This function uses the 'insert_many' method to insert multiple documents at once.
+    The documents are created as a list of dictionaries, where each dictionary represents a doctor's information.
+    """
+    # Define the list of doctor information
+    doctors = [
         {'_id': '0', 'd_name': 'Dr. John Smith',
          'description': '20 years of experience, certified by the American Board of Cardiology', 'price': 120},
         {'_id': '1', 'd_name': 'Dr. Emily Davis',
@@ -30,13 +35,40 @@ async  def doctors_info_do_insert():
          'description': '20 years of experience, specializes in women’s reproductive health', 'price': 125},
         {'_id': '10', 'd_name': 'Dr. Daniel Garcia',
          'description': '14 years of experience, focuses on respiratory disorders and critical care', 'price': 130}
-    ])
+    ]
+
+    # Insert the list of doctors into the database
+    result = await db.doctors.insert_many(doctors)
+
+    # Print the number of documents inserted
     print("inserted %d docs" % (len(result.inserted_ids),))
 
-# async def do_insert():
-#     result = await db.test_collection.insert_many([{"i": i} for i in range(2000)])
 
-#
-#
+async def services_info_do_insert():
+    """
+    Inserts a list of service information into the 'services' collection in the database.
+
+    This function uses the 'insert_many' method to insert multiple documents at once.
+    The documents are created as a list of dictionaries, where each dictionary represents a service's information.
+    """
+    # Define the list of service information
+    result = await db.services.insert_many([
+        {'_id': 'callback_0', 'name': 'ENT Specialist'},
+        {'_id': 'callback_1', 'name': 'Psychiatrist'},
+        {'_id': 'callback_2', 'name': 'Proctologist'},
+        {'_id': 'callback_3', 'name': 'Gynecologist'},
+        {'_id': 'callback_4', 'name': 'Allergist'},
+        {'_id': 'callback_5', 'name': 'Ophthalmologist'},
+        {'_id': 'callback_6', 'name': 'Traumatologist'},
+        {'_id': 'callback_7', 'name': 'Orthopedist'},
+        {'_id': 'callback_8', 'name': 'Surgeon'},
+        {'_id': 'callback_9', 'name': 'Therapist'},
+        {'_id': 'callback_10', 'name': 'Blood Analysis'}
+    ])
+
+    # Print the number of documents inserted
+    print("inserted %d docs" % (len(result.inserted_ids),))
+
+
 loop = cluster.get_io_loop()
-loop.run_until_complete(doctors_info_do_insert())
+loop.run_until_complete(services_info_do_insert())
