@@ -111,16 +111,15 @@ async def add_to_cart(callback_query: CallbackQuery, db: MDB):
 @router.callback_query(F.data == 'basket_')
 async def show_basket(callback_query: CallbackQuery, db: MDB):
     """Display the user's cart contents."""
-
     if F.data.startswith('basket'):
         await trash_can(callback_query.from_user.id, callback_query.data)
     items, item_ids, cost = await basket(callback_query.from_user.id)
     items.append('⬅️Back to main menu')
     item_ids.append('main_page')
-
     await callback_query.answer()
     await callback_query.message.edit_text(
-        text=f'Items: {items}\nCost: {cost}zlt \n\n',
+        text=f'Total cost: {cost}zlt \n\n '
+             f'In order to remove service from basket click on it',
         reply_markup=inline_builder(items, item_ids, 1)
     )
 
