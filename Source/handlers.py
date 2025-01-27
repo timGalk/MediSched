@@ -1,16 +1,13 @@
-from gc import callbacks
-
-from aiogram import F, Router, types
+from aiogram import F, Router
 from aiogram.types import Message, CallbackQuery
-from aiogram.filters import Command, CommandStart
-from aiogram.filters.callback_data import CallbackData
+from aiogram.filters import CommandStart
 
 from motor.core import AgnosticDatabase as MDB
 from contextlib import suppress
 from pymongo.errors import DuplicateKeyError
 
 from Source.keyboards import inline_builder
-from Source.database import services_name, services_id, basket_append, basket, trash_can, set_user
+from Database.database import services_name, services_id, basket_append, basket, trash_can, set_user
 
 router = Router()
 

@@ -4,7 +4,7 @@ from config import MONGO_DB
 
 # Initialize database connection
 cluster = AsyncIOMotorClient(MONGO_DB)
-db = cluster['MediSched']
+db = cluster['UpdDatabase']
 
 def set_user(user_id):
     return dict(
@@ -12,7 +12,18 @@ def set_user(user_id):
         first_name='',
         last_name='',
         phone_number=0,
-        basket=[]
+        basket=[],
+        orders = []
+    )
+
+def set_order(user_id, service_id, doctor_id, date, time):
+    return dict(
+        _id=user_id,
+        service_id=service_id,
+        doctor_id=doctor_id,
+        date=date,
+        time=time,
+
     )
 
 
