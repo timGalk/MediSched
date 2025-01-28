@@ -16,10 +16,6 @@ async def main():
     dp.include_router(router)
     await dp.start_polling(bot, db = db)
 
-# async def main():
-#     dp.include_router(router)
-#     await dp.start_polling(bot)
-
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)

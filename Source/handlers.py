@@ -4,6 +4,8 @@ from aiogram import F, Router, types
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command, CommandStart
 from aiogram.filters.callback_data import CallbackData
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.context import FSMContext
 
 from motor.core import AgnosticDatabase as MDB
 from contextlib import suppress
@@ -11,6 +13,7 @@ from pymongo.errors import DuplicateKeyError
 
 from Source.keyboards import inline_builder
 from Source.database import services_name, services_id, basket_append, basket, trash_can, set_user
+
 
 router = Router()
 
@@ -150,66 +153,77 @@ async def show_about(callback_query: CallbackQuery, db: MDB):
     )
 
 
+
+class UpdateProfileState(StatesGroup):
+    updating_first_name = State()
+    updating_last_name = State()
+    updating_phone_number = State()
+
 @router.callback_query(F.data == 'profile')
 async def show_profile_menu(callback_query: CallbackQuery, db: MDB):
     """Show the profile menu for users to input personal information."""
     await callback_query.answer()
     await callback_query.message.edit_text(
-
         text="Please choose what you'd like to update:",
-
         reply_markup=inline_builder(
-            ["First Name", "Last Name", "Phone Number", "Profile Info" , "⬅️ Back to Main Menu"],
+            ["First Name", "Last Name", "Phone Number", "Profile Info", "⬅️ Back to Main Menu"],
             ["update_first_name", "update_last_name", "update_phone", "profile_info", "main_page"]
         )
     )
 
 @router.callback_query(F.data.startswith("update_first_name"))
-async def update_first_name(callback_query: CallbackQuery):
+async def update_first_name(callback_query: CallbackQuery, state: FSMContext):
     """Prompt the user to enter their first name."""
     await callback_query.answer()
     await callback_query.message.answer("Please enter your first name:")
-
-    @router.message()
-    async def handle_first_name_input(message: Message, db: MDB):
-        await db.users.update_one(
-            {"_id": message.from_user.id},
-            {"$set": {"first_name": message.text}}
-        )
-        await message.answer("Your first name has been updated.", reply_markup=inline_builder([
-            "⬅️ Back to Profile"], ["profile"]))
+    await state.set_state(UpdateProfileState.updating_first_name)
 
 @router.callback_query(F.data.startswith("update_last_name"))
-async def update_last_name(callback_query: CallbackQuery):
+async def update_last_name(callback_query: CallbackQuery, state: FSMContext):
     """Prompt the user to enter their last name."""
     await callback_query.answer()
     await callback_query.message.answer("Please enter your last name:")
-
-    @router.message()
-    async def handle_last_name_input(message: Message, db: MDB):
-        await db.users.update_one(
-            {"_id": message.from_user.id},
-            {"$set": {"last_name": message.text}}
-        )
-        await message.answer("Your last name has been updated.", reply_markup=inline_builder([
-            "⬅️ Back to Profile"], ["profile"]))
+    await state.set_state(UpdateProfileState.updating_last_name)
 
 @router.callback_query(F.data.startswith("update_phone"))
-async def update_phone_number(callback_query: CallbackQuery):
+async def update_phone_number(callback_query: CallbackQuery, state: FSMContext):
     """Prompt the user to enter their phone number."""
     await callback_query.answer()
     await callback_query.message.answer("Please enter your phone number:")
+    await state.set_state(UpdateProfileState.updating_phone_number)
 
-    @router.message()
-    async def handle_phone_number_input(message: Message, db: MDB):
-            # phone_number = int(message.text)
-            await db.users.update_one(
-                {"_id": message.from_user.id},
-                {"$set": {"phone_number": message.text}}
-            )
-            await message.answer("Your phone number has been updated.", reply_markup=inline_builder([
-                "⬅️ Back to Profile"], ["profile"]))
+@router.message(UpdateProfileState.updating_first_name)
+async def handle_first_name_input(message: Message, state: FSMContext, db: MDB):
+    """Handle user input for first name."""
+    await db.users.update_one(
+        {"_id": message.from_user.id},
+        {"$set": {"first_name": message.text}}
+    )
+    await message.answer("Your first name has been updated.", reply_markup=inline_builder([
+        "⬅️ Back to Profile"], ["profile"]))
+    await state.clear()
 
+@router.message(UpdateProfileState.updating_last_name)
+async def handle_last_name_input(message: Message, state: FSMContext, db: MDB):
+    """Handle user input for last name."""
+    await db.users.update_one(
+        {"_id": message.from_user.id},
+        {"$set": {"last_name": message.text}}
+    )
+    await message.answer("Your last name has been updated.", reply_markup=inline_builder([
+        "⬅️ Back to Profile"], ["profile"]))
+    await state.clear()
+
+@router.message(UpdateProfileState.updating_phone_number)
+async def handle_phone_number_input(message: Message, state: FSMContext, db: MDB):
+    """Handle user input for phone number."""
+    await db.users.update_one(
+        {"_id": message.from_user.id},
+        {"$set": {"phone_number": message.text}}
+    )
+    await message.answer("Your phone number has been updated.", reply_markup=inline_builder([
+        "⬅️ Back to Profile"], ["profile"]))
+    await state.clear()
 
 @router.callback_query(F.data == 'profile_info')
 async def profile_info(callback_query: CallbackQuery, db: MDB):
