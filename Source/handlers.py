@@ -23,8 +23,8 @@ async def start(message: Message, db: MDB):
     pattern = {
         'text': 'Welcome to our Medical center',
         'reply_markup': inline_builder(
-            ['📝 Services', '🛒 Basket', '✉️ Contact us', '📑 About us'],
-            ['services', 'basket', 'contact', 'about']
+            ['📝 Services', '🛒 Basket', '✉️ Contact us', '📑 About us', '👤 Profile'],
+            ['services', 'basket', 'contact', 'about', 'profile']
         )
     }
 
@@ -41,8 +41,8 @@ async def main_menu(callback_query: CallbackQuery, db: MDB):
     await callback_query.message.edit_text(
         text='Main page',
         reply_markup=inline_builder(
-            ['📝 Services', '🛒 Basket', '✉️ Contact us', '📑 About us'],
-            ['services', 'basket', 'contact', 'about']
+            ['📝 Services', '🛒 Basket', '✉️ Contact us', '📑 About us', '👤 Profile'],
+            ['services', 'basket', 'contact', 'about', 'profile']
         )
     )
 
@@ -108,7 +108,6 @@ async def add_to_cart(callback_query: CallbackQuery, db: MDB):
 
 
 @router.callback_query(F.data == 'basket')
-@router.callback_query(F.data == 'basket_')
 async def show_basket(callback_query: CallbackQuery, db: MDB):
     """Display the user's cart contents."""
     if F.data.startswith('basket'):
@@ -148,4 +147,78 @@ async def show_about(callback_query: CallbackQuery, db: MDB):
     await callback_query.message.edit_text(
         text='About us\n',
         reply_markup=inline_builder(['⬅️Back to main menu'], ['main_page'])
+    )
+
+
+@router.callback_query(F.data == 'profile')
+async def show_profile_menu(callback_query: CallbackQuery, db: MDB):
+    """Show the profile menu for users to input personal information."""
+    await callback_query.answer()
+    await callback_query.message.edit_text(
+
+        text="Please choose what you'd like to update:",
+
+        reply_markup=inline_builder(
+            ["First Name", "Last Name", "Phone Number", "Profile Info" , "⬅️ Back to Main Menu"],
+            ["update_first_name", "update_last_name", "update_phone", "profile_info", "main_page"]
+        )
+    )
+
+@router.callback_query(F.data.startswith("update_first_name"))
+async def update_first_name(callback_query: CallbackQuery):
+    """Prompt the user to enter their first name."""
+    await callback_query.answer()
+    await callback_query.message.answer("Please enter your first name:")
+
+    @router.message()
+    async def handle_first_name_input(message: Message, db: MDB):
+        await db.users.update_one(
+            {"_id": message.from_user.id},
+            {"$set": {"first_name": message.text}}
+        )
+        await message.answer("Your first name has been updated.", reply_markup=inline_builder([
+            "⬅️ Back to Profile"], ["profile"]))
+
+@router.callback_query(F.data.startswith("update_last_name"))
+async def update_last_name(callback_query: CallbackQuery):
+    """Prompt the user to enter their last name."""
+    await callback_query.answer()
+    await callback_query.message.answer("Please enter your last name:")
+
+    @router.message()
+    async def handle_last_name_input(message: Message, db: MDB):
+        await db.users.update_one(
+            {"_id": message.from_user.id},
+            {"$set": {"last_name": message.text}}
+        )
+        await message.answer("Your last name has been updated.", reply_markup=inline_builder([
+            "⬅️ Back to Profile"], ["profile"]))
+
+@router.callback_query(F.data.startswith("update_phone"))
+async def update_phone_number(callback_query: CallbackQuery):
+    """Prompt the user to enter their phone number."""
+    await callback_query.answer()
+    await callback_query.message.answer("Please enter your phone number:")
+
+    @router.message()
+    async def handle_phone_number_input(message: Message, db: MDB):
+            # phone_number = int(message.text)
+            await db.users.update_one(
+                {"_id": message.from_user.id},
+                {"$set": {"phone_number": message.text}}
+            )
+            await message.answer("Your phone number has been updated.", reply_markup=inline_builder([
+                "⬅️ Back to Profile"], ["profile"]))
+
+
+@router.callback_query(F.data == 'profile_info')
+async def profile_info(callback_query: CallbackQuery, db: MDB):
+    """Display user information."""
+    user = await db.users.find_one({"_id": callback_query.from_user.id})
+    await callback_query.answer()
+    await callback_query.message.edit_text(
+        text=f"First Name: {user['first_name']}\n"
+             f"Last Name: {user['last_name']}\n"
+             f"Phone Number: {user['phone_number']}\n",
+        reply_markup=inline_builder(['⬅️Back to Profile menu'], ['profile'])
     )
