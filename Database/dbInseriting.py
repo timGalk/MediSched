@@ -94,5 +94,11 @@ async def add_available_slots():
     print(f"Inserted {len(result.inserted_ids)} available slots.")
 
 
+async def delete1():
+    await db.services.delete_one({"_id": 10})
+
+
+
 loop = cluster.get_io_loop()
 loop.run_until_complete(add_available_slots())
+#loop.run_until_complete(delete1())

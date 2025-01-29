@@ -10,16 +10,12 @@ from motor.core import AgnosticDatabase as MDB
 from contextlib import suppress
 from pymongo.errors import DuplicateKeyError
 
-import traceback
-from datetime import datetime, timedelta
-
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
-from sqlalchemy.exc import DatabaseError, OperationalError  # Correct imports
 
-
+from Database.medicalTestsAndPdfOutput import generate_medical_tests_results_and_return_it, make_a_med_test_record
 from Source.keyboards import inline_builder
-from Database.database import services_name, services_id, basket_append, basket, trash_can, set_user, \
+from Database.database import services_name, services_id, set_user, \
     fetch_doctors_for_service, fetch_doctor_details, record_appointment, fetch_available_slots, fetch_services, find_doc
 
 router = Router()
@@ -33,8 +29,8 @@ async def start(message: Message, db: MDB):
     pattern = {
         'text': 'Welcome to our Medical center',
         'reply_markup': inline_builder(
-            ['📝 Services', '🛒 Orders', '✉️ Contact us', '📑 About us', '👤 Profile'],
-            ['services', 'orders', 'contact', 'about', 'profile']
+            ['📝 Services', '🛒 Orders','💉 Make a Med Test','📁 Show Med Tests', '✉️ Contact us', '📑 About us', '👤 Profile'],
+            ['services', 'orders','test', 'show_tests', 'contact', 'about', 'profile']
         )
     }
 
@@ -57,10 +53,79 @@ async def main_menu(callback_query: CallbackQuery, db: MDB):
     await callback_query.message.edit_text(
         text='Main page',
         reply_markup=inline_builder(
-            ['📝 Services', '🛒 Orders', '✉️ Contact us', '📑 About us', '👤 Profile'],
-            ['services', 'orders', 'contact', 'about', 'profile']
+            ['📝 Services', '🛒 Orders','💉 Make a Med Test','📁 Show Med Tests', '✉️ Contact us', '📑 About us', '👤 Profile'],
+            ['services', 'orders','test', 'show_tests', 'contact', 'about', 'profile']
         )
     )
+
+
+@router.callback_query(lambda c: c.data == "test")
+async def generate_med_results(callback_query: CallbackQuery):
+    """Generates test results and displays them in Telegram chat."""
+
+    test_results = generate_medical_tests_results_and_return_it()
+    user_id = callback_query.from_user.id  # Replace with the target user_id
+    await make_a_med_test_record(user_id, test_results)
+
+    # Format test results as a text message
+    results_text = "🩺 Your Medical Test Results:\n\n"
+    for category, tests in test_results.items():
+        results_text += f"*{category}:*\n"
+        for test, value in tests.items():
+            results_text += f"  - {test}: *{value}*\n"
+        results_text += "\n"
+
+    # Send the test results
+    await callback_query.answer()
+    await callback_query.message.edit_text(
+        text=results_text,
+        parse_mode="Markdown",
+        reply_markup=inline_builder(['⬅️Back to main menu'], ['main_page'])
+    )
+
+
+@router.callback_query(F.data == 'show_tests')
+async def show_all_med_results(callback_query: CallbackQuery, db: MDB):
+    await callback_query.answer()
+
+    user_id = callback_query.from_user.id  # Replace with the target user_id
+
+    tests_results = await db.test_results.find({'user_id': user_id}).to_list(length=None)
+
+    formatted_orders = []
+
+    def format_lab_results(results):
+        formatted_message = ""
+
+        for category, tests in results.items():
+            formatted_message += f"\n**{category}**\n"
+            for test, value in tests.items():
+                formatted_message += f"  - {test}: {value}\n"
+
+        return formatted_message
+
+    for test in tests_results:
+        formatted_orders.append(
+            f"Test ID: {test['_id']}\n"
+            f"Date and Time: {test['dateAndTime'].strftime('%Y-%m-%d %H:%M')}\n"
+            f"Results: {format_lab_results(test['results'])}\n"
+        )
+
+
+    if not formatted_orders:
+        await callback_query.message.edit_text(
+            text='You have no med tests.',
+            reply_markup=inline_builder(['⬅️Back to main menu'], ['main_page'])
+        )
+        return
+
+    result_text = "\n".join(formatted_orders)
+
+    await callback_query.message.edit_text(
+        text=f'Your lab results:\n{result_text}',
+        reply_markup=inline_builder(['⬅️Back to main menu'], ['main_page'])
+    )
+
 
 @router.callback_query(F.data == 'contact')
 async def show_contact(callback_query: CallbackQuery, db: MDB):
@@ -316,25 +381,6 @@ async def profile_info(callback_query: CallbackQuery, db: MDB):
     )
 
 #End
-'''@router.callback_query(lambda c: c.data == "make_med_test")
-async def generate_med_results(callback_query: CallbackQuery):
-    """Generate a PDF, upload it, and send the link to the user."""
-    user_id = callback_query.from_user.id
-    test_results = generate_medical_tests()
-
-    # Generate PDF file
-    pdf_filename = f"med_results_{user_id}.pdf"
-    pdf_path = generate_pdf(test_results, pdf_filename)
-
-    # URL where the PDF will be available
-    pdf_url = f"http://yourserver.com/pdf/{pdf_filename}"  # Adjust this URL to your actual server
-
-    # Send the PDF URL to the user
-    await callback_query.answer()
-    await callback_query.message.edit_text(
-        text=f"🩺 Your medical test results are ready!\n🔗 [Click here to view](<{pdf_url}>)",
-        disable_web_page_preview=True
-    )'''
 @router.callback_query(F.data.in_(['services', 'to_services']))
 async def show_services(callback_query: CallbackQuery, db: MDB):
     """Display a list of available services."""
@@ -567,38 +613,3 @@ async def handle_time_selection(callback_query: CallbackQuery, db: MDB):
     except Exception as e:
         await callback_query.answer("Failed to confirm your appointment. Please try again.", show_alert=True)
         print(f"Error in handle_time_selection: {e}")
-
-'''@router.callback_query(F.data.startswith('cart'))
-async def add_to_cart(callback_query: CallbackQuery, db: MDB):
-    """Add a service to the user's cart."""
-    service_id = callback_query.data.split('_')[1]
-    flag = await basket_append(callback_query.from_user.id, service_id)
-
-    if flag == 0:
-        await callback_query.answer('You have already added this service to the cart.')
-    else:
-        await callback_query.answer('Service added to the cart.')
-
-    await callback_query.message.edit_text(
-        text='Main menu',
-        reply_markup=inline_builder(
-            ['📝 Services', '🛒 Basket', '✉️ Contact us', '📑 About us'],
-            ['services', 'basket', 'contact', 'about']
-        )
-    )'''
-
-'''@router.callback_query(F.data == 'basket')
-@router.callback_query(F.data == 'basket_')
-async def show_basket(callback_query: CallbackQuery, db: MDB):
-    """Display the user's cart contents."""
-    if F.data.startswith('basket'):
-        await trash_can(callback_query.from_user.id, callback_query.data)
-    items, item_ids, cost = await basket(callback_query.from_user.id)
-    items.append('⬅️Back to main menu')
-    item_ids.append('main_page')
-    await callback_query.answer()
-    await callback_query.message.edit_text(
-        text=f'Total cost: {cost}zlt \n\n '
-             f'In order to remove service from basket click on it',
-        reply_markup=inline_builder(items, item_ids, 1)
-    )'''
