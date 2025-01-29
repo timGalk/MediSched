@@ -4,7 +4,7 @@ import logging
 from aiogram import Bot, Dispatcher
 from config import TELEGRAM_TOKEN
 
-from Source.database import db
+from Database.database import db
 from Source.handlers import router
 from aiogram.filters import CommandStart
 
