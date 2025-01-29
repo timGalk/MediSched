@@ -27,12 +27,52 @@ def set_order(user_id, service_id, doctor_id, date, time):
     )
 
 
+async def record_appointment(user_id, doctor_id, selected_date, db, slot_data):
+    """Record an appointment in the database."""
+    try:
+
+
+        # Add the new appointment
+        await db["records"].insert_one({
+            "user_id": user_id,
+            "doctor_id": doctor_id,
+            "dateAndTime": selected_date,
+            "status": "confirmed",
+        })
+        print("Appointment successfully added to the database.")
+
+        # Remove the booked slot from available slots
+        await db.available_slots.delete_one({"_id": ObjectId(slot_data["_id"])})
+
+        print("Removed booked slot from available slots.")
+    except Exception as e:
+        print(f"Error recording appointment: {e}")
+
+import logging
+
+
+from datetime import datetime
+
+async def fetch_available_slots(doctor_id):
+    """Fetch available slots for a doctor and return only datetime values."""
+    doctor_id_int = int(doctor_id)
+    slots = []
+    async for doctor in db.available_slots.find({'doctor_id': doctor_id_int}):
+        slots.append(doctor['datetime'])  # Extract only datetime field
+    return slots
+
+
+
 async def services_name():
     """Fetch all service names."""
-    names = []
-    async for service in db.services.find():
-        names.append(service['name'])
-    return names
+    try:
+        # Using list() to directly collect the names from the async iterator
+        return [service['name'] async for service in db.services.find()]
+    except Exception as e:
+        # Handle exceptions (e.g., database connection errors)
+        print(f"An error occurred: {e}")
+        return []
+
 
 
 async def services_id():
@@ -42,6 +82,25 @@ async def services_id():
         service_ids.append(service['_id'])
     return service_ids
 
+
+async def fetch_doctors_for_service(service_id):
+    """Fetches doctors associated with a specific service."""
+    try:
+        doctors = await db.doctors.find({"spec_id": service_id}).to_list(None)  # Assuming spec_id links doctors to services
+        return doctors
+    except Exception as e:
+        print(f"Error fetching doctors for service: {e}")
+        return []
+
+
+async def fetch_doctor_details(db, doctor_id):
+    """Fetches details for a specific doctor."""
+    try:
+        doctor = await db.doctors.find_one({"_id": int(doctor_id)})
+        return doctor
+    except Exception as e:
+        print(f"Error fetching doctor details: {e}")
+        return None
 
 async def basket_append(user_id, service_id):
     """
@@ -119,3 +178,7 @@ async def trash_can(user_id, item_id):
         {'_id': user_id},
         {'$pull': {'basket': {'_id': item_id}}}
     )
+
+
+#loop = cluster.get_io_loop()
+#loop.run_until_complete(fetch_doctor_details(2))

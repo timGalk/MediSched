@@ -159,122 +159,156 @@ from datetime import datetime, timedelta
 
 
 
-from datetime import datetime
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
-import traceback
-
 @router.callback_query(F.data.startswith("appointment"))
 async def handle_appointment(callback_query: CallbackQuery, db):
-    """Handle appointment slot selection."""
-    try:
-        # Extract doctor ID from the callback data
-        doctor_id = callback_query.data.split('_')[1]
-        print(f"Triggered appointment callback for doctor_id={doctor_id}")  # Debug log
+    doctor_id = callback_query.data.split('_')[1]
 
-        # Fetch available slots for the doctor
-        available_slots = await fetch_available_slots(doctor_id)
-        print(f"Fetched slots: {available_slots}")  # Debug log
+    try:
+        available_slots = await fetch_available_slots(doctor_id)  # Your function to get slots
 
         if not available_slots:
             await callback_query.answer("No available slots for this doctor.", show_alert=True)
             return
 
-        # Process slots into unique dates
         available_dates = []
         for slot in available_slots:
             try:
                 if isinstance(slot, datetime):
                     available_dates.append(slot.date())
-                elif isinstance(slot, (str, int, float)):
-                    # Convert to datetime if it's a timestamp or string
+                elif isinstance(slot, (str, int, float)):  # Attempt conversion if needed
                     try:
-                        datetime_obj = datetime.fromtimestamp(float(slot))
+                        datetime_object = datetime.fromtimestamp(float(slot))
                     except ValueError:
-                        datetime_obj = datetime.strptime(str(slot), "%Y-%m-%d %H:%M:%S UTC")
-                    available_dates.append(datetime_obj.date())
+                        datetime_object = datetime.strptime(str(slot), "%Y-%m-%d %H:%M:%S UTC")  # Your date format!!!
+                    available_dates.append(datetime_object.date())
                 else:
                     print(f"Unexpected slot type: {type(slot)}, value: {slot}")
-            except (ValueError, TypeError) as e:
-                print(f"Error converting slot: {slot}, error: {e}")
+            except (ValueError, TypeError) as conversion_error:
+                print(f"Error converting slot to datetime: {conversion_error}, slot: {slot}")
 
-        # Ensure unique and sorted dates
         available_dates = sorted(set(available_dates))
-        print(f"Processed available dates: {available_dates}")  # Debug log
 
         if not available_dates:
-            await callback_query.answer("No valid dates available.", show_alert=True)
+            await callback_query.answer("No valid dates found after processing.", show_alert=True)
             return
 
-        # Create inline buttons for each available date
         date_buttons = [
-            InlineKeyboardButton(
-                text=date.strftime("%Y-%m-%d"),
-                callback_data=f"picktime_{doctor_id}_{date.strftime('%Y-%m-%d')}"
-            )
+            InlineKeyboardButton(text=date.strftime("%Y-%m-%d"), callback_data=f"pickdate_{doctor_id}_{date.strftime('%Y-%m-%d')}")
             for date in available_dates
         ]
 
-        # Add back button and create the keyboard
+
         keyboard = InlineKeyboardMarkup(
-            inline_keyboard=[[btn] for btn in date_buttons] + [
-                [InlineKeyboardButton(text="⬅️ Back", callback_data="back_to_services")]
-            ]
+            inline_keyboard=[[btn] for btn in date_buttons] + [[InlineKeyboardButton(text="⬅️ Back", callback_data="back_to_services")]]
         )
 
-        # Edit message with available dates
         await callback_query.message.edit_text(
             text="Choose an available date for your appointment:",
             reply_markup=keyboard
         )
 
-    except Exception as e:
-        await callback_query.answer("An unexpected error occurred. Please try again.", show_alert=True)
-        print(f"Error in handle_appointment: {e}")
+    except (DatabaseError, OperationalError) as db_error:  # SQLAlchemy exceptions (or your database library's)
+        await callback_query.answer("Database error. Please try again later.", show_alert=True)
+        print(f"Database error fetching slots: {db_error}")
         traceback.print_exc()
+
+    except Exception as e:  # General exception (last resort)
+        await callback_query.answer("An unexpected error occurred. Please try again.", show_alert=True)
+        print(f"Unhandled error fetching slots: {e}")
+        traceback.print_exc()
+# ... rest of your bot code (including fetch_available_slots, etc.) ...
+'''@router.callback_query(F.data.startswith("pickdate"))
+async def handle_date_selection(callback_query: CallbackQuery, db: MDB):
+    """Handle date selection and show available times."""
+    _, doctor_id, selected_date = callback_query.data.split('_')
+
+    try:
+        # Fetch available slots for the doctor
+        available_slots = await fetch_available_slots(db, doctor_id)
+
+        print(available_slots)
+        print("po")
+        # Filter slots for the selected date
+        time_slots = [slot for slot in available_slots if slot.startswith(selected_date)]
+
+        if not time_slots:
+            await callback_query.answer("No available times for the selected date.", show_alert=True)
+            return
+
+        # Create buttons for time slots
+        time_buttons = [
+            InlineKeyboardButton(text=slot.split(" ")[1], callback_data=f"picktime_{doctor_id}_{slot}")
+            for slot in time_slots
+        ]
+
+        # Create a keyboard for time slots
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[[btn] for btn in time_buttons] + [[InlineKeyboardButton("⬅️ Back", callback_data=f"appointment_{doctor_id}")]]
+        )
+
+        await callback_query.message.edit_text(
+            text=f"Available times for {selected_date}:",
+            reply_markup=keyboard
+        )
+
+    except Exception as e:
+        await callback_query.answer("Failed to fetch time slots. Please try again.", show_alert=True)
+        print(f"Error fetching time slots: {e}")'''
+
+@router.callback_query(F.data.startswith('callback'))
+async def back_to_doctors(callback_query: CallbackQuery, db: MDB):
+    """Handle navigation back to the list of doctors."""
+    selected_service_id = callback_query.message.reply_markup.inline_keyboard[0][0].callback_data.split('_')[1]
+    doctors = await fetch_doctors_for_service(selected_service_id)
+
+    if not doctors:
+        await callback_query.answer("No doctors available.")
+        return
+
+    doctor_names = [doctor['name'] for doctor in doctors]
+    doctor_ids = [f"doctor_{doctor['_id']}" for doctor in doctors]
+
+    doctor_names.append('⬅️Back to services')
+    doctor_ids.append('back_to_services')
+
+    await callback_query.answer()
+    await callback_query.message.edit_text(
+        text=f"Choose a doctor for service ID {selected_service_id}",
+        reply_markup=inline_builder(doctor_names, doctor_ids)
+    )
 
 
 @router.callback_query(F.data.startswith("picktime"))
-async def handle_time_selection(callback_query: CallbackQuery, db):
-    """Handle appointment confirmation and record it."""
+async def handle_time_selection(callback_query: CallbackQuery, db: MDB):
+    """Finalize the appointment booking."""
+    _, doctor_id, selected_slot = callback_query.data.split('_')
+
     try:
-        # Extract doctor ID and selected slot (date) from callback data
-        _, doctor_id, selected_slot = callback_query.data.split('_')
-        print(f"Triggered time selection: doctor_id={doctor_id}, selected_slot={selected_slot}")  # Debug log
-
-        # Fetch slot data from database (assuming slot date is stored)
-        slot_data = await db.available_slots.find_one({"doctor_id": int(doctor_id)})
-        print(f"Fetched slot data: {slot_data}")  # Debug log
-
+        # Fetch the slot date-time from available slots collection
+        slot_data = await db.available_slots.find_one({"doctor_id": int(doctor_id), "slots": selected_slot})
         if not slot_data:
-            await callback_query.answer("The selected time slot is no longer available.", show_alert=True)
+            await callback_query.answer("Selected time slot is no longer available.", show_alert=True)
             return
 
-        # Get the datetime for the selected slot
-        selected_datetime = slot_data.get("datetime", None)
-        if not selected_datetime:
-            await callback_query.answer("Failed to retrieve the selected time. Please try again.", show_alert=True)
-            return
+        selected_datetime = slot_data["datetime"]
 
         # Record the appointment in the database
-        await record_appointment(
-            user_id=callback_query.from_user.id,
-            doctor_id=int(doctor_id),
-            selected_date=selected_datetime,
-            db=db, slot_data=slot_data
-        )
+        await record_appointment(callback_query.from_user.id, int(doctor_id), selected_slot, selected_datetime, db)
 
-        # Notify the user and show confirmation message
-        await callback_query.answer("Your order is confirmed!", show_alert=True)
+        await callback_query.answer("Appointment successfully booked!", show_alert=True)
+
+        # Confirm appointment details
         await callback_query.message.edit_text(
-            text=f"Your appointment is confirmed for {selected_datetime}. Thank you!",
+            text=f"Your appointment with the doctor is confirmed for {selected_datetime}.",
             reply_markup=InlineKeyboardMarkup(
                 inline_keyboard=[[InlineKeyboardButton("⬅️ Back to Main Menu", callback_data="main_page")]]
             )
         )
 
     except Exception as e:
-        await callback_query.answer("Failed to confirm your appointment. Please try again.", show_alert=True)
-        print(f"Error in handle_time_selection: {e}")
+        await callback_query.answer("Failed to book the appointment. Please try again.", show_alert=True)
+        print(f"Error booking appointment: {e}")
+
 
 @router.callback_query(F.data.startswith('cart'))
 async def add_to_cart(callback_query: CallbackQuery, db: MDB):

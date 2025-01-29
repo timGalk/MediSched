@@ -32,8 +32,15 @@ async  def create_doctors():
 
     result = await db['doctors'].insert_many(doctors_data)
 
+    result2 = await db["records"].insert_one({
+        "user_id": 1,
+        "doctor_id": 2,
+        "dateAndTime": 3,
+        "status": "confirmed",
+    })
+
     # Print the number of documents inserted
-    print("inserted %d docs" % (len(result.inserted_ids)))
+    print("inserted %d docs" % (len(result2.inserted_ids)))
 
 
 async def services_info_do_insert():
@@ -88,4 +95,4 @@ async def add_available_slots():
 
 
 loop = cluster.get_io_loop()
-loop.run_until_complete(add_available_slots())
+#loop.run_until_complete(add_available_slots())
