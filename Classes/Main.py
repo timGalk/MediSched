@@ -2,6 +2,7 @@ import asyncio
 
 from motor.motor_asyncio import AsyncIOMotorClient
 
+from Database.MedicalTestsAndPdfOutput import generate_pdf, generate_medical_tests_results_and_return_it, generate_pdf
 from Database.database import services_name, fetch_doctor_details, fetch_available_slots
 from Database.database import fetch_doctors_for_service
 #from Source.handlers import show_doctor
@@ -21,10 +22,13 @@ async def main():
 
     # Call the async function to fetch doctors for a service with a sample service ID "1"
     #doctor = await show_doctor(1)
-    doctor1 = fetch_doctors_for_service(1)
+    '''doctor1 = fetch_doctors_for_service(1)
     print(doctor1)
 
-    print(fetch_doctor_details(1))
+    print(fetch_doctor_details(1))'''
+
+    generate_pdf(generate_medical_tests_results_and_return_it())
+    #await make_a_med_test_record(user_id=1, test_results=generate_medical_tests())
     #record_appointment(1, 2, )
     # Print the results to see the fetched doctors
     #print(doctors)  # This will print the list of doctors related to service_id "1"

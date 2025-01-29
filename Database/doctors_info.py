@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from Database.database import cluster, db
-from  Classes.Clinics import Doctor
+
 
 async  def create_doctors():
     doctors_data = [
@@ -95,4 +95,4 @@ async def add_available_slots():
 
 
 loop = cluster.get_io_loop()
-#loop.run_until_complete(add_available_slots())
+loop.run_until_complete(add_available_slots())
