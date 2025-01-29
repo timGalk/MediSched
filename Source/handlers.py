@@ -32,8 +32,8 @@ async def start(message: Message, db: MDB):
     pattern = {
         'text': 'Welcome to our Medical center',
         'reply_markup': inline_builder(
-            ['📝 Services', '🛒 Basket', '✉️ Contact us', '📑 About us', '👤 Profile'],
-            ['services', 'basket', 'contact', 'about', 'profile']
+            ['📝 Services', '🛒 Orders', '✉️ Contact us', '📑 About us', '👤 Profile'],
+            ['services', 'orders', 'contact', 'about', 'profile']
         )
     }
 
@@ -57,8 +57,8 @@ async def main_menu(callback_query: CallbackQuery, db: MDB):
     await callback_query.message.edit_text(
         text='Main page',
         reply_markup=inline_builder(
-            ['📝 Services', '🛒 Basket', '✉️ Contact us', '📑 About us', '👤 Profile'],
-            ['services', 'basket', 'contact', 'about', 'profile']
+            ['📝 Services', '🛒 Orders', '✉️ Contact us', '📑 About us', '👤 Profile'],
+            ['services', 'orders', 'contact', 'about', 'profile']
         )
     )
 @router.callback_query(F.data.startswith('services'))
@@ -100,10 +100,7 @@ async def show_services(callback_query: CallbackQuery, db: MDB):
 #     await callback_query.message.edit_text(
 #         text=f"Choose a doctor for {callback_query.data}",
 #         reply_markup=inline_builder(
-#             ['⬅️Back to services'],
-
-    # except Exception as e:
-    #     await callback_query.answer("An error occurred while fetching services. Please try again.")
+#             ['⬅️Back to services'],['services'])
 
 #
 #
@@ -260,6 +257,25 @@ async def show_services(callback_query: CallbackQuery, db: MDB):
 #         await callback_query.answer("Failed to confirm your appointment. Please try again.", show_alert=True)
 #         print(f"Error in handle_time_selection: {e}")
 
+
+@router.callback_query(F.data == 'orders')
+async def show_orders(callback_query: CallbackQuery, db: MDB):
+    await callback_query.answer()
+
+    user_id = callback_query.from_user.id
+
+    user_orders = await db['records'].find_one({"_id": user_id})
+    if not user_orders:
+        await callback_query.answer("You don't have any orders", show_alert=True)
+
+    orders = await db.orders.find({'user_id': user_id}).to_list(length=None)
+
+    orders_text = '\n'.join(str(order) for order in orders) if orders else "No orders found."
+
+    await callback_query.message.edit_text(
+        text=f'Your orders:\n{orders_text}',
+        reply_markup=inline_builder(['⬅️Back to main menu'], ['main_page'])
+    )
 
 @router.callback_query(F.data == 'contact')
 async def show_contact(callback_query: CallbackQuery, db: MDB):
