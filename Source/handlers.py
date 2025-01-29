@@ -1,5 +1,5 @@
 from datetime import datetime
-
+import re
 from aiogram import F, Router, Bot, Dispatcher
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
@@ -265,15 +265,18 @@ async def show_orders(callback_query: CallbackQuery, db: MDB):
     user_id = 848384190  # Replace with the target user_id
 
     orders = await db.records.find({'user_id': user_id}).to_list(length=None)
-    # if not user_orders:
-    #     await callback_query.answer("You don't have any orders", show_alert=True)
-    #
-    # orders = await db.orders.find({'user_id': user_id}).to_list(length=None)
+    if not orders:
+        await callback_query.answer("You don't have any orders", show_alert=True)
 
-    # orders_text = '\n'.join(str(order) for order in orders) if orders else "No orders found."
+    orders = await db.records.find({'user_id': user_id}).to_list(length=None)
+    formatted_orders = [
+        f"Order ID: {order['_id']}\nDoctor ID: {order['doctor_id']}\nDate and Time: {order['dateAndTime'].strftime('%Y-%m-%d %H:%M')}\nStatus: {order['status']}\n"
+        for order in orders
+    ] if orders else ["You don't have any orders"]
+    result_text = "\n".join(formatted_orders)
 
     await callback_query.message.edit_text(
-        text=f'Your orders:\n{orders}',
+        text=f'Your orders:\n{result_text}',
         reply_markup=inline_builder(['⬅️Back to main menu'], ['main_page'])
     )
 

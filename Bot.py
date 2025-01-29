@@ -6,7 +6,6 @@ from config import TELEGRAM_TOKEN
 
 from Database.database import db
 from Source.handlers import router
-from aiogram.filters import CommandStart
 
 bot = Bot(token=TELEGRAM_TOKEN)
 dp = Dispatcher()
