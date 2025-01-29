@@ -17,7 +17,7 @@ from aiogram import Router, F
 
 from Source.keyboards import inline_builder
 from Database.database import services_name, services_id, basket_append, basket, trash_can, set_user, \
-    fetch_doctors_for_service, fetch_doctor_details, record_appointment, fetch_available_slots
+    fetch_doctors_for_service, fetch_doctor_details, record_appointment, fetch_available_slots, find_doc
 
 router = Router()
 
@@ -267,12 +267,20 @@ async def show_orders(callback_query: CallbackQuery, db: MDB):
     orders = await db.records.find({'user_id': user_id}).to_list(length=None)
     if not orders:
         await callback_query.answer("You don't have any orders", show_alert=True)
+        return  # Exit early if no orders
 
-    orders = await db.records.find({'user_id': user_id}).to_list(length=None)
-    formatted_orders = [
-        f"Order ID: {order['_id']}\nDoctor ID: {order['doctor_id']}\nDate and Time: {order['dateAndTime'].strftime('%Y-%m-%d %H:%M')}\nStatus: {order['status']}\n"
-        for order in orders
-    ] if orders else ["You don't have any orders"]
+    formatted_orders = []
+    for order in orders:
+        doctor = await find_doc(order['doctor_id'])  # Await the async function
+        doctor_name = doctor.get('name')
+
+        formatted_orders.append(
+            f"Order ID: {order['_id']}\n"
+            f"Doctor ID: {doctor_name}\n"
+            f"Date and Time: {order['dateAndTime'].strftime('%Y-%m-%d %H:%M')}\n"
+            f"Status: {order['status']}\n"
+        )
+
     result_text = "\n".join(formatted_orders)
 
     await callback_query.message.edit_text(

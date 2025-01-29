@@ -108,3 +108,6 @@ async def trash_can(user_id, item_id):
         {'_id': user_id},
         {'$pull': {'basket': {'_id': item_id}}}
     )
+
+async def find_doc(doctor_id):
+    return await db.doctors.find_one({"_id": int(doctor_id)})
