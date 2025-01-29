@@ -6,7 +6,7 @@ from config import MONGO_DB
 cluster = AsyncIOMotorClient(MONGO_DB)
 db = cluster['UpdDatabase']
 
-'''def set_user(user_id):
+def set_user(user_id):
     return dict(
         _id=user_id,
         first_name='',
@@ -24,7 +24,7 @@ def set_order(user_id, service_id, doctor_id, date, time):
         date=date,
         time=time,
 
-    )'''
+    )
 
 
 async def record_appointment(user_id, doctor_id, selected_date, db, slot_data):
@@ -207,6 +207,10 @@ async def trash_can(user_id, item_id):
         {'$pull': {'basket': {'_id': item_id}}}
     )
 
+
+#Tsimurs
+async def find_doc(doctor_id):
+    return await db.doctors.find_one({"_id": int(doctor_id)})
 
 #loop = cluster.get_io_loop()
 #loop.run_until_complete(fetch_doctor_details(2))

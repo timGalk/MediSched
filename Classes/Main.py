@@ -2,7 +2,7 @@ import asyncio
 
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from Database.MedicalTestsAndPdfOutput import generate_pdf, generate_medical_tests_results_and_return_it, generate_pdf
+from Database.medicalTestsAndPdfOutput import generate_pdf, generate_medical_tests_results_and_return_it, generate_pdf
 from Database.database import services_name, fetch_doctor_details, fetch_available_slots
 from Database.database import fetch_doctors_for_service
 #from Source.handlers import show_doctor

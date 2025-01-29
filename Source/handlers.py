@@ -1,6 +1,8 @@
 from datetime import datetime
 
 from aiogram import F, Router, Bot, Dispatcher
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup,State
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.filters import CommandStart
 
@@ -18,7 +20,7 @@ from sqlalchemy.exc import DatabaseError, OperationalError  # Correct imports
 
 from Source.keyboards import inline_builder
 from Database.database import services_name, services_id, basket_append, basket, trash_can, set_user, \
-    fetch_doctors_for_service, fetch_doctor_details, record_appointment, fetch_available_slots, fetch_services
+    fetch_doctors_for_service, fetch_doctor_details, record_appointment, fetch_available_slots, fetch_services, find_doc
 
 router = Router()
 
@@ -31,8 +33,8 @@ async def start(message: Message, db: MDB):
     pattern = {
         'text': 'Welcome to our Medical center',
         'reply_markup': inline_builder(
-            ['📝 Services', '🛒 Basket', '✉️ Contact us', '📑 About us'],
-            ['services', 'basket', 'contact', 'about']
+            ['📝 Services', '🛒 Orders', '✉️ Contact us', '📑 About us', '👤 Profile'],
+            ['services', 'orders', 'contact', 'about', 'profile']
         )
     }
 
@@ -43,13 +45,20 @@ async def start(message: Message, db: MDB):
 
 @router.callback_query(F.data == 'main_page')
 async def main_menu(callback_query: CallbackQuery, db: MDB):
-    """Show the main menu."""
+    """Displays the main menu to the user.
+    Args:
+        callback_query: The incoming callback query.
+        db: The database instance.
+
+    Returns:
+        None
+    """
     await callback_query.answer()
     await callback_query.message.edit_text(
-        text='Welcome to our Medical center',
+        text='Main page',
         reply_markup=inline_builder(
-            ['📝 Services', '🛒 Basket', '✉️ Contact us', '📑 About us', '💉 Make a med test'],
-            ['services', 'basket', 'contact', 'about']
+            ['📝 Services', '🛒 Orders', '✉️ Contact us', '📑 About us', '👤 Profile'],
+            ['services', 'orders', 'contact', 'about', 'profile']
         )
     )
 
@@ -85,7 +94,228 @@ async def show_about(callback_query: CallbackQuery, db: MDB):
         reply_markup=inline_builder(['⬅️Back to main menu'], ['main_page'])
     )
 
+@router.callback_query(F.data == 'orders')
+async def show_orders(callback_query: CallbackQuery, db: MDB):
+    await callback_query.answer()
 
+    user_id = callback_query.from_user.id  # Replace with the target user_id
+
+    orders = await db.records.find({'user_id': user_id}).to_list(length=None)
+
+    formatted_orders = []
+    for order in orders:
+        doctor = await find_doc(order['doctor_id'])  # Await the async function
+        doctor_name = doctor.get('name')
+
+        formatted_orders.append(
+            f"Order ID: {order['_id']}\n"
+            f"Doctor ID: {doctor_name}\n"
+            f"Date and Time: {order['dateAndTime'].strftime('%Y-%m-%d %H:%M')}\n"
+            f"Status: {order['status']}\n"
+        )
+
+    if not formatted_orders:
+        await callback_query.message.edit_text(
+            text='You have no orders.',
+            reply_markup=inline_builder(['⬅️Back to main menu'], ['main_page'])
+        )
+        return
+
+    result_text = "\n".join(formatted_orders)
+
+    await callback_query.message.edit_text(
+        text=f'Your orders:\n{result_text}',
+        reply_markup=inline_builder(['⬅️Back to main menu'], ['main_page'])
+    )
+
+
+#Start
+
+# Profile menu
+class UpdateProfileState(StatesGroup):
+    updating_first_name = State()
+    updating_last_name = State()
+    updating_phone_number = State()
+
+@router.callback_query(F.data == 'profile')
+async def show_profile_menu(callback_query: CallbackQuery, db: MDB):
+    """
+    Show the profile menu for users to input personal information.
+
+    This function is triggered when a user clicks on the 'profile' button in the main menu.
+    It displays a menu with options to update the user's first name, last name, phone number, and profile info.
+
+    Args:
+        callback_query (CallbackQuery): The incoming callback query.
+        db (MDB): The database instance.
+
+    Returns:
+        None
+    """
+    await callback_query.answer()
+    await callback_query.message.edit_text(
+        text="Please choose what you'd like to update:",
+        reply_markup=inline_builder(
+            ["First Name", "Last Name", "Phone Number", "Profile Info", "⬅️ Back to Main Menu"],
+            ["update_first_name", "update_last_name", "update_phone", "profile_info", "main_page"]
+        )
+    )
+
+@router.callback_query(F.data.startswith("update_first_name"))
+async def update_first_name(callback_query: CallbackQuery, state: FSMContext):
+    """
+    Prompt the user to enter their first name.
+
+    This function is triggered when the user clicks on the 'Update First Name' button in the profile menu.
+    It answers the callback query, sends a message to the user prompting them to enter their first name,
+    and sets the state to 'updating_first_name' to await the user's input.
+
+    Args:
+        callback_query (CallbackQuery): The incoming callback query.
+        state (FSMContext): The finite state machine context.
+
+    Returns:
+        None
+    """
+    await callback_query.answer()
+    await callback_query.message.answer("Please enter your first name:")
+    await state.set_state(UpdateProfileState.updating_first_name)
+
+@router.callback_query(F.data.startswith("update_last_name"))
+async def update_last_name(callback_query: CallbackQuery, state: FSMContext):
+    """Prompt the user to enter their last name.
+
+    This function is triggered when the user clicks on the 'Update Last Name' button in the profile menu.
+    It answers the callback query, sends a message to the user prompting them to enter their last name,
+    and sets the state to 'updating_last_name' to await the user's input.
+
+    Args:
+        callback_query (CallbackQuery): The incoming callback query.
+        state (FSMContext): The finite state machine context.
+
+    Returns:
+        None
+    """
+    await callback_query.answer()
+    await callback_query.message.answer("Please enter your last name:")
+    await state.set_state(UpdateProfileState.updating_last_name)
+
+@router.callback_query(F.data.startswith("update_phone"))
+async def update_phone_number(callback_query: CallbackQuery, state: FSMContext):
+    """    Prompt the user to enter their phone number.
+
+    This function is triggered when the user clicks on the 'Update Phone Number' button in the profile menu.
+    It answers the callback query, sends a message to the user prompting them to enter their phone number,
+    and sets the state to 'updating_phone_number' to await the user's input.
+
+    Args:
+        callback_query (CallbackQuery): The incoming callback query.
+        state (FSMContext): The finite state machine context.
+
+    Returns:
+        None
+    """
+    await callback_query.answer()
+    await callback_query.message.answer("Please enter your phone number:")
+    await state.set_state(UpdateProfileState.updating_phone_number)
+
+@router.message(UpdateProfileState.updating_first_name)
+async def handle_first_name_input(message: Message, state: FSMContext, db: MDB):
+    """
+        Handle user input for first name.
+
+    This function is triggered when the user sends a message while in the state of updating their first name.
+    It updates the user's first name in the database and sends a confirmation message to the user.
+    It then clears the state of the FSMContext.
+
+    Args:
+        message (Message): The incoming message.
+        state (FSMContext): The finite state machine context.
+        db (MDB): The MongoDB database connection.
+
+    Returns:
+        None
+    """
+    await db.users.update_one(
+        {"_id": message.from_user.id},
+        {"$set": {"first_name": message.text}}
+    )
+    await message.answer("Your first name has been updated.", reply_markup=inline_builder([
+        "⬅️ Back to Profile"], ["profile"]))
+    await state.clear()
+
+@router.message(UpdateProfileState.updating_last_name)
+async def handle_last_name_input(message: Message, state: FSMContext, db: MDB):
+    """
+        Handle user input for last name.
+
+    This function is triggered when the user sends a message while in the state of updating their last name.
+    It updates the user's last name in the database, sends a confirmation message to the user, and clears the state of the FSMContext.
+
+    Args:
+        message (Message): The incoming message.
+        state (FSMContext): The finite state machine context.
+        db (MDB): The MongoDB database connection.
+
+    Returns:
+        None
+    """
+    await db.users.update_one(
+        {"_id": message.from_user.id},
+        {"$set": {"last_name": message.text}}
+    )
+    await message.answer("Your last name has been updated.", reply_markup=inline_builder([
+        "⬅️ Back to Profile"], ["profile"]))
+    await state.clear()
+
+@router.message(UpdateProfileState.updating_phone_number)
+async def handle_phone_number_input(message: Message, state: FSMContext, db: MDB):
+    """ Handle user input for phone number.
+
+    This function is triggered when the user sends a message while in the state of updating their phone number.
+    It updates the user's phone number in the database, sends a confirmation message to the user, and clears the state of the FSMContext.
+
+    Args:
+        message (Message): The incoming message.
+        state (FSMContext): The finite state machine context.
+        db (MDB): The MongoDB database connection.
+
+    Returns:
+        None
+    """
+    await db.users.update_one(
+        {"_id": message.from_user.id},
+        {"$set": {"phone_number": message.text}}
+    )
+    await message.answer("Your phone number has been updated.", reply_markup=inline_builder([
+        "⬅️ Back to Profile"], ["profile"]))
+    await state.clear()
+
+@router.callback_query(F.data == 'profile_info')
+async def profile_info(callback_query: CallbackQuery, db: MDB):
+    """
+    Display user information.
+
+    This function is triggered when the user clicks on the 'Profile Info' button.
+    It retrieves the user's information from the database and displays it in a message.
+
+    Args:
+        callback_query (CallbackQuery): The incoming callback query.
+        db (MDB): The MongoDB database connection.
+
+    Returns:
+        None
+    """
+    user = await db.users.find_one({"_id": callback_query.from_user.id})
+    await callback_query.answer()
+    await callback_query.message.edit_text(
+        text=f"First Name: {user['first_name']}\n"
+             f"Last Name: {user['last_name']}\n"
+             f"Phone Number: {user['phone_number']}\n",
+        reply_markup=inline_builder(['⬅️Back to Profile menu'], ['profile'])
+    )
+
+#End
 '''@router.callback_query(lambda c: c.data == "make_med_test")
 async def generate_med_results(callback_query: CallbackQuery):
     """Generate a PDF, upload it, and send the link to the user."""
