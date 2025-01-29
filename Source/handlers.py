@@ -12,9 +12,7 @@ from pymongo.errors import DuplicateKeyError
 from aiogram.fsm.context import FSMContext
 
 from aiogram import Router, F
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 
 
 from Source.keyboards import inline_builder
