@@ -262,18 +262,18 @@ async def show_services(callback_query: CallbackQuery, db: MDB):
 async def show_orders(callback_query: CallbackQuery, db: MDB):
     await callback_query.answer()
 
-    user_id = callback_query.from_user.id
+    user_id = 848384190  # Replace with the target user_id
 
-    user_orders = await db['records'].find_one({"_id": user_id})
-    if not user_orders:
-        await callback_query.answer("You don't have any orders", show_alert=True)
+    orders = await db.records.find({'user_id': user_id}).to_list(length=None)
+    # if not user_orders:
+    #     await callback_query.answer("You don't have any orders", show_alert=True)
+    #
+    # orders = await db.orders.find({'user_id': user_id}).to_list(length=None)
 
-    orders = await db.orders.find({'user_id': user_id}).to_list(length=None)
-
-    orders_text = '\n'.join(str(order) for order in orders) if orders else "No orders found."
+    # orders_text = '\n'.join(str(order) for order in orders) if orders else "No orders found."
 
     await callback_query.message.edit_text(
-        text=f'Your orders:\n{orders_text}',
+        text=f'Your orders:\n{orders}',
         reply_markup=inline_builder(['⬅️Back to main menu'], ['main_page'])
     )
 
