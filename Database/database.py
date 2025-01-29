@@ -7,6 +7,7 @@ cluster = AsyncIOMotorClient(MONGO_DB)
 db = cluster['UpdDatabase']
 
 def set_user(user_id):
+    """Creates a new user document with default values."""
     return dict(
         _id=user_id,
         first_name='',
@@ -18,11 +19,9 @@ def set_user(user_id):
 
 
 async def record_appointment(user_id, doctor_id, selected_date, db, slot_data):
-    """Record an appointment in the database."""
+    """Record an appointment in the database and remove the booked slot from available slots."""
     try:
-
-
-        # Add the new appointment
+        # Add the new appointment and remove the booked slot
         await db["records"].insert_one({
             "user_id": user_id,
             "doctor_id": doctor_id,
@@ -31,15 +30,12 @@ async def record_appointment(user_id, doctor_id, selected_date, db, slot_data):
         })
         print("Appointment successfully added to the database.")
 
-        # Remove the booked slot from available slots
         await db.available_slots.delete_one({"_id": ObjectId(slot_data["_id"])})
-
         print("Removed booked slot from available slots.")
     except Exception as e:
         print(f"Error recording appointment: {e}")
 
 import logging
-
 
 from datetime import datetime
 
@@ -54,9 +50,9 @@ async def fetch_available_slots(doctor_id):
 
 
 async def services_name():
-    """Fetch all service names."""
+    """Fetches all service names from the database."""
     try:
-        # Using list() to directly collect the names from the async iterator
+        # Collect service names from the services collection
         return [service['name'] async for service in db.services.find()]
     except Exception as e:
         # Handle exceptions (e.g., database connection errors)
@@ -66,7 +62,7 @@ async def services_name():
 
 
 async def services_id():
-    """Fetch all service IDs."""
+    """Fetches all service IDs from the database."""
     service_ids = []
     async for service in db.services.find():
         service_ids.append(service['_id'])
@@ -74,7 +70,7 @@ async def services_id():
 
 
 async def fetch_doctors_for_service(service_id):
-    """Fetches doctors associated with a specific service."""
+    """Fetches all doctors associated with a specific service from the database."""
     try:
         doctors = await db.doctors.find({"spec_id": service_id}).to_list(None)
         return doctors
@@ -83,7 +79,7 @@ async def fetch_doctors_for_service(service_id):
         return []
 
 async def fetch_services(db):
-    """Fetches available services."""
+    """Fetches all available services from the database."""
     try:
         services = await db.services.find({}).to_list(None)
         return services
@@ -93,7 +89,7 @@ async def fetch_services(db):
 
 
 async def fetch_doctor_details(db, doctor_id):
-    """Fetches details for a specific doctor."""
+    """Fetches details for a specific doctor from the database."""
     try:
         doctor = await db.doctors.find_one({"_id": int(doctor_id)})
         return doctor
@@ -102,7 +98,7 @@ async def fetch_doctor_details(db, doctor_id):
         return None
 
 async def fetch_user_details(db, user_id):
-    """Fetches details for a specific doctor."""
+    """Fetches details for a specific user from the database, ensuring necessary fields exist."""
     try:
         user = await db.users.find_one({"_id": int(user_id)})
         if user is None:
@@ -119,10 +115,9 @@ async def fetch_user_details(db, user_id):
         print(f"Error fetching doctor details: {e}")
         return None
 
-
-
 #Tsimurs
 async def find_doc(doctor_id):
+    """Finds a doctor by their ID in the database."""
     return await db.doctors.find_one({"_id": int(doctor_id)})
 
 #loop = cluster.get_io_loop()

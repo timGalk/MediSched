@@ -3,7 +3,9 @@ from datetime import datetime
 from Database.database import cluster, db
 
 
-async  def create_doctors():
+async def create_doctors():
+    # This function inserts a predefined list of doctors into the 'doctors' collection in the database.
+    # It includes details such as the doctor's ID, name, specialization ID, description, and price.
     doctors_data = [
         {'_id': 0, 'name': 'Dr. John Smith', 'spec_id': 0,
          'description': '20 years of experience, certified by the American Board of Cardiology', 'price': 120},
@@ -44,13 +46,9 @@ async  def create_doctors():
 
 
 async def services_info_do_insert():
-    """
-    Inserts a list of service information into the 'services' collection in the database.
-
-    This function uses the 'insert_many' method to insert multiple documents at once.
-    The documents are created as a list of dictionaries, where each dictionary represents a service's information.
-    """
-    # Define the list of service information
+    # Inserts a list of service information into the 'services' collection in the database.
+    # This function uses the 'insert_many' method to insert multiple documents at once.
+    # The documents are created as a list of dictionaries, where each dictionary represents a service's information.
     services = [
         {'_id': i, 'name': name}
         for i, name in enumerate([
@@ -67,19 +65,14 @@ async def services_info_do_insert():
 
 
 async def add_available_slots():
-    """
-    Adds available slots to the 'available_slots' collection in the database.
-
-    This function uses the 'insert_many' method to insert multiple documents at once.
-    The documents are created as a list of dictionaries, where each dictionary represents an available slot.
-    """
-    # Define the list of available slots as tuples of (spec_id, doctor_id, date, time)
+    # Adds available slots to the 'available_slots' collection in the database.
+    # This function uses the 'insert_many' method to insert multiple documents at once.
+    # The documents are created as a list of dictionaries, where each dictionary represents an available slot.
     slots_data = [
         (0, 0, '2024-01-01', '10:00'),
         (1, 2, '2024-01-01', '10:00'),
     ]
 
-    # Convert slots_data into a list of dictionaries with proper datetime objects
     available_slots = [
         {
             'spec_id': spec_id,
@@ -89,12 +82,13 @@ async def add_available_slots():
         for spec_id, doctor_id, date, time in slots_data
     ]
 
-    # Insert the slots into the 'available_slots' collection
     result = await db.available_slots.insert_many(available_slots)
     print(f"Inserted {len(result.inserted_ids)} available slots.")
 
 
 async def delete1():
+    # Deletes a single document from the 'services' collection in the database.
+    # The document to be deleted is specified by its '_id' field.
     await db.services.delete_one({"_id": 10})
 
 

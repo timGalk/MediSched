@@ -1,8 +1,5 @@
-from datetime import datetime
-
-from aiogram import F, Router, Bot, Dispatcher
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import StatesGroup,State
+from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.filters import CommandStart
 
@@ -41,14 +38,7 @@ async def start(message: Message, db: MDB):
 
 @router.callback_query(F.data == 'main_page')
 async def main_menu(callback_query: CallbackQuery, db: MDB):
-    """Displays the main menu to the user.
-    Args:
-        callback_query: The incoming callback query.
-        db: The database instance.
-
-    Returns:
-        None
-    """
+    """Displays the main menu to the user."""
     await callback_query.answer()
     await callback_query.message.edit_text(
         text='Main page',
@@ -58,11 +48,9 @@ async def main_menu(callback_query: CallbackQuery, db: MDB):
         )
     )
 
-
 @router.callback_query(lambda c: c.data == "test")
 async def generate_med_results(callback_query: CallbackQuery):
     """Generates test results and displays them in Telegram chat."""
-
     test_results = generate_medical_tests_results_and_return_it()
     user_id = callback_query.from_user.id  # Replace with the target user_id
     await make_a_med_test_record(user_id, test_results)
@@ -83,9 +71,9 @@ async def generate_med_results(callback_query: CallbackQuery):
         reply_markup=inline_builder(['⬅️Back to main menu'], ['main_page'])
     )
 
-
 @router.callback_query(F.data == 'show_tests')
 async def show_all_med_results(callback_query: CallbackQuery, db: MDB):
+    """Fetches and displays all medical test results for the user."""
     await callback_query.answer()
 
     user_id = callback_query.from_user.id  # Replace with the target user_id
@@ -95,6 +83,7 @@ async def show_all_med_results(callback_query: CallbackQuery, db: MDB):
     formatted_orders = []
 
     def format_lab_results(results):
+        """Formats the medical test results into a readable string."""
         formatted_message = ""
 
         for category, tests in results.items():
@@ -111,7 +100,6 @@ async def show_all_med_results(callback_query: CallbackQuery, db: MDB):
             f"Results: {format_lab_results(test['results'])}\n"
         )
 
-
     if not formatted_orders:
         await callback_query.message.edit_text(
             text='You have no med tests.',
@@ -126,18 +114,16 @@ async def show_all_med_results(callback_query: CallbackQuery, db: MDB):
         reply_markup=inline_builder(['⬅️Back to main menu'], ['main_page'])
     )
 
-
 @router.callback_query(F.data == 'contact')
 async def show_contact(callback_query: CallbackQuery, db: MDB):
     """Show contact information."""
     await callback_query.answer()
     await callback_query.message.edit_text(
         text='Contact us \n'
-             'Telegram @byte_tim\n'
-             'Telegram @iinazar24',
+             'Telegram @iinazar24\n'
+             'Telegram @byte_tim',
         reply_markup=inline_builder(['⬅️Back to main menu'], ['main_page'])
     )
-
 
 @router.callback_query(F.data == 'about')
 async def show_about(callback_query: CallbackQuery, db: MDB):
@@ -161,6 +147,7 @@ async def show_about(callback_query: CallbackQuery, db: MDB):
 
 @router.callback_query(F.data == 'orders')
 async def show_orders(callback_query: CallbackQuery, db: MDB):
+    """Fetches and displays all orders for the user."""
     await callback_query.answer()
 
     user_id = callback_query.from_user.id  # Replace with the target user_id
@@ -193,30 +180,18 @@ async def show_orders(callback_query: CallbackQuery, db: MDB):
         reply_markup=inline_builder(['⬅️Back to main menu'], ['main_page'])
     )
 
-
 #Start
 
 # Profile menu
 class UpdateProfileState(StatesGroup):
+    """States for updating user profile information."""
     updating_first_name = State()
     updating_last_name = State()
     updating_phone_number = State()
 
 @router.callback_query(F.data == 'profile')
 async def show_profile_menu(callback_query: CallbackQuery, db: MDB):
-    """
-    Show the profile menu for users to input personal information.
-
-    This function is triggered when a user clicks on the 'profile' button in the main menu.
-    It displays a menu with options to update the user's first name, last name, phone number, and profile info.
-
-    Args:
-        callback_query (CallbackQuery): The incoming callback query.
-        db (MDB): The database instance.
-
-    Returns:
-        None
-    """
+    """Show the profile menu for users to input personal information."""
     await callback_query.answer()
     await callback_query.message.edit_text(
         text="Please choose what you'd like to update:",
@@ -228,79 +203,28 @@ async def show_profile_menu(callback_query: CallbackQuery, db: MDB):
 
 @router.callback_query(F.data.startswith("update_first_name"))
 async def update_first_name(callback_query: CallbackQuery, state: FSMContext):
-    """
-    Prompt the user to enter their first name.
-
-    This function is triggered when the user clicks on the 'Update First Name' button in the profile menu.
-    It answers the callback query, sends a message to the user prompting them to enter their first name,
-    and sets the state to 'updating_first_name' to await the user's input.
-
-    Args:
-        callback_query (CallbackQuery): The incoming callback query.
-        state (FSMContext): The finite state machine context.
-
-    Returns:
-        None
-    """
+    """Prompt the user to enter their first name."""
     await callback_query.answer()
     await callback_query.message.answer("Please enter your first name:")
     await state.set_state(UpdateProfileState.updating_first_name)
 
 @router.callback_query(F.data.startswith("update_last_name"))
 async def update_last_name(callback_query: CallbackQuery, state: FSMContext):
-    """Prompt the user to enter their last name.
-
-    This function is triggered when the user clicks on the 'Update Last Name' button in the profile menu.
-    It answers the callback query, sends a message to the user prompting them to enter their last name,
-    and sets the state to 'updating_last_name' to await the user's input.
-
-    Args:
-        callback_query (CallbackQuery): The incoming callback query.
-        state (FSMContext): The finite state machine context.
-
-    Returns:
-        None
-    """
+    """Prompt the user to enter their last name."""
     await callback_query.answer()
     await callback_query.message.answer("Please enter your last name:")
     await state.set_state(UpdateProfileState.updating_last_name)
 
 @router.callback_query(F.data.startswith("update_phone"))
 async def update_phone_number(callback_query: CallbackQuery, state: FSMContext):
-    """    Prompt the user to enter their phone number.
-
-    This function is triggered when the user clicks on the 'Update Phone Number' button in the profile menu.
-    It answers the callback query, sends a message to the user prompting them to enter their phone number,
-    and sets the state to 'updating_phone_number' to await the user's input.
-
-    Args:
-        callback_query (CallbackQuery): The incoming callback query.
-        state (FSMContext): The finite state machine context.
-
-    Returns:
-        None
-    """
+    """Prompt the user to enter their phone number."""
     await callback_query.answer()
     await callback_query.message.answer("Please enter your phone number:")
     await state.set_state(UpdateProfileState.updating_phone_number)
 
 @router.message(UpdateProfileState.updating_first_name)
 async def handle_first_name_input(message: Message, state: FSMContext, db: MDB):
-    """
-        Handle user input for first name.
-
-    This function is triggered when the user sends a message while in the state of updating their first name.
-    It updates the user's first name in the database and sends a confirmation message to the user.
-    It then clears the state of the FSMContext.
-
-    Args:
-        message (Message): The incoming message.
-        state (FSMContext): The finite state machine context.
-        db (MDB): The MongoDB database connection.
-
-    Returns:
-        None
-    """
+    """Handle user input for first name."""
     await db.users.update_one(
         {"_id": message.from_user.id},
         {"$set": {"first_name": message.text}}
@@ -311,20 +235,7 @@ async def handle_first_name_input(message: Message, state: FSMContext, db: MDB):
 
 @router.message(UpdateProfileState.updating_last_name)
 async def handle_last_name_input(message: Message, state: FSMContext, db: MDB):
-    """
-        Handle user input for last name.
-
-    This function is triggered when the user sends a message while in the state of updating their last name.
-    It updates the user's last name in the database, sends a confirmation message to the user, and clears the state of the FSMContext.
-
-    Args:
-        message (Message): The incoming message.
-        state (FSMContext): The finite state machine context.
-        db (MDB): The MongoDB database connection.
-
-    Returns:
-        None
-    """
+    """Handle user input for last name."""
     await db.users.update_one(
         {"_id": message.from_user.id},
         {"$set": {"last_name": message.text}}
@@ -335,19 +246,7 @@ async def handle_last_name_input(message: Message, state: FSMContext, db: MDB):
 
 @router.message(UpdateProfileState.updating_phone_number)
 async def handle_phone_number_input(message: Message, state: FSMContext, db: MDB):
-    """ Handle user input for phone number.
-
-    This function is triggered when the user sends a message while in the state of updating their phone number.
-    It updates the user's phone number in the database, sends a confirmation message to the user, and clears the state of the FSMContext.
-
-    Args:
-        message (Message): The incoming message.
-        state (FSMContext): The finite state machine context.
-        db (MDB): The MongoDB database connection.
-
-    Returns:
-        None
-    """
+    """Handle user input for phone number."""
     await db.users.update_one(
         {"_id": message.from_user.id},
         {"$set": {"phone_number": message.text}}
@@ -358,19 +257,7 @@ async def handle_phone_number_input(message: Message, state: FSMContext, db: MDB
 
 @router.callback_query(F.data == 'profile_info')
 async def profile_info(callback_query: CallbackQuery, db: MDB):
-    """
-    Display user information.
-
-    This function is triggered when the user clicks on the 'Profile Info' button.
-    It retrieves the user's information from the database and displays it in a message.
-
-    Args:
-        callback_query (CallbackQuery): The incoming callback query.
-        db (MDB): The MongoDB database connection.
-
-    Returns:
-        None
-    """
+    """Display user information."""
     user = await db.users.find_one({"_id": callback_query.from_user.id})
     await callback_query.answer()
     await callback_query.message.edit_text(
@@ -433,11 +320,10 @@ async def handle_service_selection(callback_query: CallbackQuery, db: MDB):
             reply_markup=inline_builder(doctor_names, doctor_ids)
         )
 
-@router.callback_query(lambda c: c.data == 'back_to_services')
+@router.callback_query(F.data == 'back_to_services')
 async def back_to_services(callback_query: CallbackQuery, db: MDB):
     """Handle going back to the services list."""
     await show_services(callback_query, db)  # Directly call show_services to avoid an extra window
-
 
 @router.callback_query(F.data.startswith('doctor_'))
 async def show_doctor(callback_query: CallbackQuery, db: MDB):
@@ -455,9 +341,7 @@ async def show_doctor(callback_query: CallbackQuery, db: MDB):
 
     # Create inline buttons for the doctor details
     appointment_button = InlineKeyboardButton(text="Make an Appointment 🗓️", callback_data=f"appointment_{doctor_id}")
-    #add_to_cart_button = InlineKeyboardButton(text="Add to Cart 🛒", callback_data=f"cart_{doctor['_id']}")
     back_button = InlineKeyboardButton(text="⬅️ Back to Doctors", callback_data=f"back_to_doctors_{doctor['spec_id']}")
-
 
     # Inline keyboard for options (buttons need to be in a 2D list)
     keyboard = InlineKeyboardMarkup(
@@ -483,8 +367,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 import traceback
 from datetime import datetime, timedelta
 
-
-@router.callback_query(lambda c: c.data.startswith('back_to_doctors'))
+@router.callback_query(F.data.startswith('back_to_doctors'))
 async def back_to_doctors(callback_query: CallbackQuery, db: MDB):
     """Handle going back to the doctors list for the previously selected service."""
     data_parts = callback_query.data.split('_')
@@ -495,14 +378,6 @@ async def back_to_doctors(callback_query: CallbackQuery, db: MDB):
 
     service_id = int(data_parts[-1])  # Convert valid service ID
     await handle_service_selection(callback_query, db, service_id=service_id)
-
-
-
-
-
-from datetime import datetime
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
-import traceback
 
 @router.callback_query(F.data.startswith("appointment"))
 async def handle_appointment(callback_query: CallbackQuery, db):
@@ -525,14 +400,14 @@ async def handle_appointment(callback_query: CallbackQuery, db):
         for slot in available_slots:
             try:
                 if isinstance(slot, datetime):
-                    available_dates.append(slot.date())
+                    available_dates.append(slot)
                 elif isinstance(slot, (str, int, float)):
                     # Convert to datetime if it's a timestamp or string
                     try:
                         datetime_obj = datetime.fromtimestamp(float(slot))
                     except ValueError:
-                        datetime_obj = datetime.strptime(str(slot), "%Y-%m-%d %H:%M:%S UTC")
-                    available_dates.append(datetime_obj.date())
+                        datetime_obj = datetime.strptime(str(slot), "%Y-%m-%d %H:%M")
+                    available_dates.append(datetime_obj)
                 else:
                     print(f"Unexpected slot type: {type(slot)}, value: {slot}")
             except (ValueError, TypeError) as e:
@@ -549,13 +424,12 @@ async def handle_appointment(callback_query: CallbackQuery, db):
         # Create inline buttons for each available date
         date_buttons = [
             InlineKeyboardButton(
-                text=date.strftime("%Y-%m-%d %H:%M"),
-                callback_data=f"picktime_{doctor_id}_{date.strftime('%Y-%m-%d')}"
+                text=date.strftime("%Y-%m-%d %H:%M"),  # Display Year-Month-Day Hour:Minute
+                callback_data=f"picktime_{doctor_id}_{date.strftime('%Y-%m-%d %H:%M')}"  # Fix callback data format
             )
             for date in available_dates
         ]
 
-        # Add back button with the doctor_id included in callback_data
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[[btn] for btn in date_buttons] + [
                 [InlineKeyboardButton(text="⬅️ Back", callback_data=f"doctor_{doctor_id}")]
@@ -572,7 +446,6 @@ async def handle_appointment(callback_query: CallbackQuery, db):
         await callback_query.answer("An unexpected error occurred. Please try again.", show_alert=True)
         print(f"Error in handle_appointment: {e}")
         traceback.print_exc()
-
 
 @router.callback_query(F.data.startswith("picktime"))
 async def handle_time_selection(callback_query: CallbackQuery, db: MDB):
