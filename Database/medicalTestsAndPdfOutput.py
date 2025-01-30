@@ -7,7 +7,6 @@ import os
 cluster = AsyncIOMotorClient(MONGO_DB)
 db = cluster['UpdDatabase']
 
-
 # Folder to store PDF files
 PDF_FOLDER = "pdfs"
 os.makedirs(PDF_FOLDER, exist_ok=True)
@@ -16,8 +15,18 @@ ROOT_FOLDER = "./"  # Save to the current directory (root)
 
 # Function to generate random medical test results
 def generate_medical_tests_results_and_return_it():
+    """The function was created by Nazarii"""
     """
-    Generates random medical test results with a 70% probability of being within the normal range.
+    Generates a dictionary containing simulated medical test results for CBC, Biochemistry, and Hormones.
+
+    random_value(normal_range, abnormal_range, probability)
+        Generates a random value based on a given normal and abnormal range, with a specified probability favoring the normal range.
+
+    Returns:
+        A dictionary with the following structure:
+            - "CBC": Complete Blood Count with Hemoglobin, White Blood Cells, and Platelets.
+            - "Biochemistry": Includes Glucose, ALT, AST, and Creatinine values.
+            - "Hormones": Contains TSH and Vitamin D levels.
     """
     def random_value(normal_range, abnormal_range, probability=0.7):
         """Chooses a value from the normal or abnormal range."""
@@ -44,7 +53,24 @@ def generate_medical_tests_results_and_return_it():
     }
 
 async def make_a_med_test_record(user_id, test_results):
-    """Record an appointment in the database."""
+    """The function was created by Nazarii"""
+    """
+    Inserts medical test results into the MongoDB database for a given user.
+
+    Parameters:
+    user_id (str): The ID of the user whose test results are being recorded.
+    test_results (dict): A dictionary containing the medical test results.
+
+    Behavior:
+    This asynchronous function attempts to insert a record into the "test_results" collection
+    within the MongoDB database. The inserted document includes the user's ID, current date 
+    and time, and the provided test results. If the insertion is successful, a confirmation
+    message is printed to the console. If an error occurs during the insertion, an error message
+    with information about the exception is printed to the console.
+
+    Exceptions:
+    Logs any exceptions raised during the database operation.
+    """
     try:
         # Insert test results into MongoDB
         await db["test_results"].insert_one({
@@ -54,18 +80,32 @@ async def make_a_med_test_record(user_id, test_results):
         })
         print("✅ Test results recorded successfully.")
     except Exception as e:
-        print(f"❌ Error recording results: {e}")
-
-# Function to generate a PDF with the test results
-import os
-from fpdf import FPDF
+        print(f" Error recording results: {e}")
 
 import os
 from fpdf import FPDF
 
 
 def generate_pdf(test_results, filename="med_results.pdf"):
-    """Generate a PDF file with medical test results."""
+    """The function was created by Nazarii"""
+    """
+    Generates a PDF document containing medical test results.
+
+    Args:
+        test_results (dict): A dictionary containing categories as keys and their corresponding test results as sub-dictionaries. 
+                             Each sub-dictionary contains test names as keys and their respective values.
+        filename (str, optional): The name of the output PDF file. Default is "med_results.pdf".
+
+    Returns:
+        str: The file path of the generated PDF.
+
+    Raises:
+        ValueError: If the 'filename' argument is not a string.
+
+    Notes:
+        - The function creates a PDF in the current working directory.
+        - Test results are organized by categories, with test names and their values listed under each category.
+    """
     # Ensure filename is a string and represents a valid file path
     if not isinstance(filename, str):
         raise ValueError("The 'filename' argument must be a string representing the file path.")
@@ -86,18 +126,3 @@ def generate_pdf(test_results, filename="med_results.pdf"):
 
     pdf.output(filepath)
     return filepath
-
-
-'''# FastAPI route to serve the PDF files from the root directory
-@app.get("/pdf/{filename}")
-async def get_pdf(filename: str):
-    """Serve the PDF file from the root folder."""
-    filepath = os.path.join(ROOT_FOLDER, filename)
-    if os.path.exists(filepath):
-        return FileResponse(filepath, media_type='application/pdf')
-    return {"error": "File not found"}'''
-
-# Callback function for generating and sending medical test results
-# Example usage
-
-print()

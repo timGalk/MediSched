@@ -4,8 +4,25 @@ from Database.database import cluster, db
 
 
 async def create_doctors():
-    # This function inserts a predefined list of doctors into the 'doctors' collection in the database.
-    # It includes details such as the doctor's ID, name, specialization ID, description, and price.
+    """The function was created by Tsimur"""
+    """
+    Inserts a predefined list of doctor records into the 'doctors' collection and an initial record in the 'records' collection within the database.
+
+    This asynchronous function performs the following actions:
+    - Populates the 'doctors' collection with a predefined list of doctor objects, each containing attributes like:
+      - _id: Unique identifier for the doctor
+      - name: Full name of the doctor
+      - spec_id: ID specifying the specialization
+      - description: A brief overview of the doctor's expertise and certifications
+      - price: Fee charged for the doctor's consultation
+    - Adds a sample record into the 'records' collection. This record contains fields such as:
+      - user_id: ID of the user associated with this record
+      - doctor_id: ID of the doctor associated with this record
+      - dateAndTime: Placeholder value for the appointment's date and time
+      - status: Current status of the record (e.g., "confirmed")
+
+    Prints the number of documents inserted into the 'records' collection. If there are errors during insertion, no documents will be printed.
+    """
     doctors_data = [
         {'_id': 0, 'name': 'Dr. John Smith', 'spec_id': 0,
          'description': '20 years of experience, certified by the American Board of Cardiology', 'price': 120},
@@ -32,8 +49,6 @@ async def create_doctors():
          'description': '14 years of experience, focuses on respiratory disorders and critical care', 'price': 130}
     ]
 
-    result = await db['doctors'].insert_many(doctors_data)
-
     result2 = await db["records"].insert_one({
         "user_id": 1,
         "doctor_id": 2,
@@ -46,6 +61,14 @@ async def create_doctors():
 
 
 async def services_info_do_insert():
+    """The function was created by Tsimur"""
+    """
+    Inserts a predefined list of service information into the 'services' collection in the database.
+
+    This asynchronous function creates a list of dictionaries, where each dictionary represents a service's information, including an ID and name. The documents are then inserted into the database using the 'insert_many' method.
+
+    The function logs the number of documents successfully inserted.
+    """
     # Inserts a list of service information into the 'services' collection in the database.
     # This function uses the 'insert_many' method to insert multiple documents at once.
     # The documents are created as a list of dictionaries, where each dictionary represents a service's information.
@@ -65,9 +88,15 @@ async def services_info_do_insert():
 
 
 async def add_available_slots():
-    # Adds available slots to the 'available_slots' collection in the database.
-    # This function uses the 'insert_many' method to insert multiple documents at once.
-    # The documents are created as a list of dictionaries, where each dictionary represents an available slot.
+    """The function was created by Tsimur"""
+    """
+    Adds available slots to the 'available_slots' collection in the database.
+
+    This function inserts a batch of available slot records into the 'available_slots' collection using the asynchronous 'insert_many' method. Each record is represented as a dictionary and constructed from the provided 'slots_data' list. The 'slots_data' consists of tuples containing specification ID, doctor ID, date, and time information. 
+
+    The function formats the date and time into a single datetime object for each slot and stores these records in the database. It also outputs the number of successfully inserted slot records to the console.
+    """
+
     slots_data = [
         (0, 0, '2024-01-01', '10:00'),
         (1, 2, '2024-01-01', '10:00'),
@@ -86,13 +115,5 @@ async def add_available_slots():
     print(f"Inserted {len(result.inserted_ids)} available slots.")
 
 
-async def delete1():
-    # Deletes a single document from the 'services' collection in the database.
-    # The document to be deleted is specified by its '_id' field.
-    await db.services.delete_one({"_id": 10})
-
-
-
 loop = cluster.get_io_loop()
 loop.run_until_complete(add_available_slots())
-#loop.run_until_complete(delete1())
