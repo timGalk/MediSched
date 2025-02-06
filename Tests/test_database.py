@@ -124,8 +124,7 @@ async def test_record_appointment(mock_db):
     doctor_id = 18
     selected_date = datetime(2024, 1, 9, 12, 0)
     status = "confirmed"
-    # await record_appointment(user_id, doctor_id, selected_date, db, status)
-    # await db.records.find({'user_id': user_id}).to_list(length=None)
+    await record_appointment(user_id, doctor_id, selected_date, db, status)
     orders = await db.records.find({'user_id': user_id}).to_list(length=None)
     assert orders [0]["status"] == "confirmed"
     assert orders [0]["dateAndTime"] == datetime(2024, 1, 9, 12, 0)
