@@ -2,10 +2,11 @@ import asyncio
 from datetime import datetime
 from unittest.mock import MagicMock, AsyncMock
 import pytest
-from Database.database import db
 
-# initialize test database
+
+
 from Database.database import cluster
+from Database.database import db
 from Database.database import (
     set_user,
     record_appointment,
@@ -14,9 +15,9 @@ from Database.database import (
     services_id,
     fetch_doctors_for_service,
     fetch_services,
-    fetch_doctor_details,
     fetch_user_details,
-    find_doc
+    find_doc,
+    fetch_doctor_details
 )
 
 @pytest.fixture
@@ -42,7 +43,7 @@ def mock_db():
     return db
 
 @pytest.mark.asyncio
-async def test_set_user():
+async def test_set_user(mock_db):
     """Test setting a new user with default values."""
     user_id = "12345"
     expected_user = {
@@ -118,6 +119,23 @@ async def test_fetch_doctors_for_service(mock_db):
     assert doctors[2]["name"] == "Dr. Richard Davis"
 
 @pytest.mark.asyncio
+async def test_fetch_services(mock_db):
+    """Test fetching available services."""
+    services = await fetch_services(db)
+    assert isinstance(services, list)
+    assert len(services) == 10
+
+@pytest.mark.asyncio
+async def test_fetch_doctor_details(mock_db):
+    """Test fetching details of a doctor."""
+    doctor_id = 1
+    doctor = await fetch_doctor_details(db, doctor_id)
+    assert isinstance(doctor, dict)
+    assert doctor["_id"] == 1
+    assert doctor["name"] == "Dr. Emily Davis"
+
+
+@pytest.mark.asyncio
 async def test_record_appointment(mock_db):
     """Test booking an appointment for a user."""
     user_id = 2
@@ -130,3 +148,4 @@ async def test_record_appointment(mock_db):
     assert orders [0]["dateAndTime"] == datetime(2024, 1, 9, 12, 0)
     assert orders [0]["doctor_id"] == 18
     assert orders [0]["user_id"] == 2
+
