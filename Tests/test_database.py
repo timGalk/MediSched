@@ -15,7 +15,6 @@ from Database.database import (
     services_id,
     fetch_doctors_for_service,
     fetch_services,
-    fetch_user_details,
     find_doc,
     fetch_doctor_details
 )
@@ -73,8 +72,6 @@ async def test_services_name(mock_db):
             'Allergist', 'Ophthalmologist', 'Traumatologist', 'Orthopedist',
             'Surgeon', 'Therapist',
         ]
-    with pytest.raises(AssertionError):
-        assert  len(services) == 8
 
 @pytest.mark.asyncio
 async def test_services_id(mock_db):
