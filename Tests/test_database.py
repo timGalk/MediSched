@@ -66,6 +66,11 @@ async def test_services_name(mock_db):
     services = await services_name()
     assert isinstance(services, list)
     assert len(services) == 10
+    assert services == [
+            'ENT Specialist', 'Psychiatrist', 'Proctologist', 'Gynecologist',
+            'Allergist', 'Ophthalmologist', 'Traumatologist', 'Orthopedist',
+            'Surgeon', 'Therapist',
+        ]
     with pytest.raises(AssertionError):
         assert  len(services) == 8
 
@@ -75,3 +80,38 @@ async def test_services_id(mock_db):
     services = await services_id()
     assert isinstance(services, list)
     assert len(services) == 10
+    assert services == [i for i in range(10)]
+    with pytest.raises(AssertionError):
+        assert  len(services) == 8
+        assert len(services) == 7
+
+@pytest.mark.asyncio
+async def test_find_doc(mock_db):
+    """Test finding a doctor by ID."""
+    doc_id = 1
+    doc = await find_doc(doc_id)
+    assert isinstance(doc, dict)
+    assert doc["_id"] == doc_id
+    assert doc["name"] == "Dr. Emily Davis"
+    assert doc["price"] == 100
+    assert doc["description"] == "15 years of experience, specializes in child care and developmental disorders"
+
+@pytest.mark.asyncio
+async def test_available_slots(mock_db):
+    """Test fetching available slots for a doctor."""
+    doctor_id = 7
+    slots = await fetch_available_slots(doctor_id)
+    assert isinstance(slots, list)
+    assert len(slots) == 1
+    assert slots[0] == datetime(2024, 1, 19, 16, 0)
+
+@pytest.mark.asyncio
+async def test_fetch_doctors_for_service(mock_db):
+    """Test fetching doctors for a specific service."""
+    service_id = 2
+    doctors = await fetch_doctors_for_service(service_id)
+    assert isinstance(doctors, list)
+    assert len(doctors) == 3
+    assert doctors[0]["name"] == "Dr. Michael Brown"
+    assert doctors[1]["name"] == "Dr. Charles Garcia"
+    assert doctors[2]["name"] == "Dr. Richard Davis"
