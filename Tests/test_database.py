@@ -1,7 +1,8 @@
+import asyncio
 from datetime import datetime
 from unittest.mock import MagicMock, AsyncMock
 import pytest
-from bson.objectid import ObjectId
+from Database.database import db
 
 # initialize test database
 from Database.database import cluster
@@ -115,3 +116,18 @@ async def test_fetch_doctors_for_service(mock_db):
     assert doctors[0]["name"] == "Dr. Michael Brown"
     assert doctors[1]["name"] == "Dr. Charles Garcia"
     assert doctors[2]["name"] == "Dr. Richard Davis"
+
+@pytest.mark.asyncio
+async def test_record_appointment(mock_db):
+    """Test booking an appointment for a user."""
+    user_id = 2
+    doctor_id = 18
+    selected_date = datetime(2024, 1, 9, 12, 0)
+    status = "confirmed"
+    # await record_appointment(user_id, doctor_id, selected_date, db, status)
+    # await db.records.find({'user_id': user_id}).to_list(length=None)
+    orders = await db.records.find({'user_id': user_id}).to_list(length=None)
+    assert orders [0]["status"] == "confirmed"
+    assert orders [0]["dateAndTime"] == datetime(2024, 1, 9, 12, 0)
+    assert orders [0]["doctor_id"] == 18
+    assert orders [0]["user_id"] == 2
